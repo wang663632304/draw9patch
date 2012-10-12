@@ -1,0 +1,17 @@
+.idea/
+.DS_Store
+*.iml
+*.apk
+*.trace
+
+
+gen/
+out/
+obj/
+proguard_logs/
+
+
+jni/*
+
+
+local.properties
