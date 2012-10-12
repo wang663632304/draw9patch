@@ -236,8 +236,9 @@ class ImageEditorPanel extends JPanel {
         JCheckBox showLock = new JCheckBox("Show lock");
         showLock.setOpaque(false);
         showLock.setForeground(Color.WHITE);
-        showLock.setSelected(true);
+        showLock.setSelected(false);
         showLock.putClientProperty("JComponent.sizeVariant", "small");
+        viewer.setLockVisible(false);
         showLock.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent event) {
                 viewer.setLockVisible(((JCheckBox) event.getSource()).isSelected());
@@ -674,6 +675,11 @@ class ImageEditorPanel extends JPanel {
 
         private int lastPositionX;
         private int lastPositionY;
+
+        private int lastTranslatedPositionY;
+        private int lastTranslatedPositionX;
+
+
         private int currentButton;
         private boolean showCursor;
 
@@ -735,16 +741,17 @@ class ImageEditorPanel extends JPanel {
                     // changed state).
                     currentButton = event.isShiftDown() ? MouseEvent.BUTTON3 : event.getButton();
                     currentButton = event.isControlDown() ? MouseEvent.BUTTON2 : currentButton;
-                    paint(event.getX(), event.getY(), currentButton);
+                    paint(event.getX(), event.getY(), currentButton, false);
                 }
             });
             addMouseMotionListener(new MouseMotionAdapter() {
                 @Override
                 public void mouseDragged(MouseEvent event) {
-                    if (!checkLockedRegion(event.getX(), event.getY())) {
+                    //don't check to be able to draw patches clicking and dragging on the canvas
+                    //if (!checkLockedRegion(event.getX(), event.getY())) {
                         // use the stored button, see note above
-                        paint(event.getX(), event.getY(),  currentButton);
-                    }
+                        paint(event.getX(), event.getY(),  currentButton, true);
+                    //}
                 }
 
                 @Override
@@ -857,7 +864,7 @@ class ImageEditorPanel extends JPanel {
             }
         }
 
-        private void paint(int x, int y, int button) {
+        private void paint(int x, int y, int button, boolean drawRect) {
             int color;
             switch (button) {
                 case MouseEvent.BUTTON1:
@@ -881,15 +888,47 @@ class ImageEditorPanel extends JPanel {
 
             int width = image.getWidth();
             int height = image.getHeight();
+
+            int y1 = (int) (height * x / (float) width);
+            int y2 = (int) (-height * x / (float) width + height);
+
+            if (y > 0 && y > y1 && y > y2) {
+                y = height - 1;
+            } else if (x > 0 && y < y1 && y > y2) {
+                x = width - 1;
+            } else if (y < height && y < y1 && y < y2) {
+                y = 0;
+            } else if (x < width && y > y1 && y < y2) {
+                x = 0;
+            }
+
             if (((x == 0 || x == width - 1) && (y > 0 && y < height - 1)) ||
                     ((x > 0 && x < width - 1) && (y == 0 || y == height - 1))) {
-                image.setRGB(x, y, color);
+                if (drawRect) {
+                    if (y == lastTranslatedPositionY) {
+                        int[] colors = new int[Math.abs(x - lastTranslatedPositionX)];
+                        Arrays.fill(colors, color);
+                        image.setRGB(Math.min(x, lastTranslatedPositionX), y,
+                                Math.abs(x - lastTranslatedPositionX), 1,
+                                colors, 0, 0);
+                    } else if (x == lastTranslatedPositionX) {
+                        int[] colors = new int[]{color};
+                        image.setRGB(x, Math.min(y, lastTranslatedPositionY),
+                                1, Math.abs(y - lastTranslatedPositionY),
+                                colors, 0, 0);
+                    }
+
+                } else {
+                    image.setRGB(x, y, color);
+                }
                 findPatches();
                 stretchesViewer.computePatches();
                 if (showBadPatches) {
                     findBadPatches();
                 }
                 repaint();
+                lastTranslatedPositionX = x;
+                lastTranslatedPositionY = y;
             }
         }
 

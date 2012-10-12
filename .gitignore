@@ -8,6 +8,7 @@
 gen/
 out/
 obj/
+lib/
 proguard_logs/
 
 
