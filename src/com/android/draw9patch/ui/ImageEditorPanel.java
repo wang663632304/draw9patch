@@ -362,6 +362,7 @@ class ImageEditorPanel extends JPanel {
             JFileChooser chooser = new JFileChooser(
                     name.substring(0, name.lastIndexOf(File.separatorChar)));
             chooser.setFileFilter(new PngFileFilter());
+            chooser.setSelectedFile(new File(name));
             int choice = chooser.showSaveDialog(this);
             if (choice == JFileChooser.APPROVE_OPTION) {
                 File file = chooser.getSelectedFile();
